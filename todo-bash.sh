@@ -1,32 +1,69 @@
 #!/usr/bin/bash
 
+#
+# Global variables
+#
 TODOS=()
 CHECKED=()
 SELECTED_ITEM_INDEX=-1
 INPUT_MODE_ACTIVE=0
 REPO_URL=https://github.com/lyyka/todo-bash
 
+#
+# Color codes
+#
 PURPLE="\e[1;35m"
 GREEN="\e[1;32m"
 NO_COLOR="\e[0m"
 
+#
+# Universal separator
+#
+print_separator() {
+    echo '----------------------'
+}
+
+#
+# Inline commands below the list
+#
 print_commands_inline() {
-   echo '^K - Insert mode | ^F - Quit'
+   echo '^K - Insert mode | ^E - Options | ^F - Quit'
 }
 
-print_commands() {
-    echo 'Commands:'
-    echo '^K - Insert mode'
-    echo '^F - Quit'
+#
+# Display all options and commands
+#
+options_mode() {
+    clear
+    echo -e "$PURPLE ---OPTIONS & COMMANDS--- $NO_COLOR"
+    print_separator
+    echo "^K - Open insert mode to add new item"
+    echo "ENTER - Mark currently selected item as resolved"
+    echo "DELETE / BACKSPACE - Delete currently selected item"
+    echo "^E - Open options & commands menu"
+    echo "^F - Quit with confirmation prompt"
+    print_separator
+    echo "<- Press ENTER to go back"
+    read -s
 }
 
+#
+# Welcome text printed when script is run for the firs time
+#
 print_welcome_text() {
-    echo 'Welcome to to-do list created in bash!\e[0m'
+    echo 'Welcome to to-do list created in bash!'
     echo 'You can create, toggle & delete to-do items from your terminal'
     echo "Repository: $REPO_URL"
-    echo '----------------------'
-    print_commands
-    echo '----------------------'
+    print_separator
+}
+
+#
+# When no todo items are present
+#
+print_empty_state() {
+    echo -e "$PURPLE No to-dos added! $NO_COLOR"
+    print_separator
+    print_commands_inline
 }
 
 #
@@ -68,14 +105,6 @@ print_todo() {
 }
 
 #
-# When no todo items are present
-#
-print_empty_state() {
-    echo "No to-dos added!"
-    print_commands_inline
-}
-
-#
 # Print all todos from array
 #
 print_all_todos() {
@@ -86,7 +115,7 @@ print_all_todos() {
     if [[ ${#TODOS[@]} == 0 ]]; then
         print_empty_state
     else
-        echo '----------------------'
+        print_separator
         print_commands_inline
     fi
 }
@@ -172,7 +201,9 @@ move_indicator_down() {
 #
 input_mode() {
     clear
-    read -p 'Item name: ' newItem
+    echo -e "$PURPLE ---INPUT MODE--- $NO_COLOR"
+    print_separator
+    read -p 'New item: ' newItem
     if [[ ! -z "$newItem" ]]; then # prevent empty values from being added
         add_todo "$newItem"
     fi
@@ -199,9 +230,10 @@ handle_keyboard_input() {
     local arrow_down_char=$(printf "\x42") # [B
     local quit_char=$(printf "\x06") # ^F
     local input_mode_char=$(printf "\x0b") # ^K
+    local options_mode_char=$(printf "\x05") # ^E
 
     read -sn1 mode
-    
+
     if [[ $mode == $enter_char && $SELECTED_ITEM_INDEX > -1 ]]; then
         toggle_todo SELECTED_ITEM_INDEX
     elif [[ $mode == $delete_char && $SELECTED_ITEM_INDEX > -1 ]]; then
@@ -214,9 +246,14 @@ handle_keyboard_input() {
         move_indicator_down
     elif [[ $mode == $input_mode_char ]]; then
         input_mode
+    elif [[ $mode == $options_mode_char ]]; then
+        options_mode
     fi 
 }
 
+#
+# Script start
+#
 clear
 
 print_welcome_text
