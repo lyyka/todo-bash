@@ -8,13 +8,55 @@ CHECKED=()
 SELECTED_ITEM_INDEX=-1
 INPUT_MODE_ACTIVE=0
 REPO_URL=https://github.com/lyyka/todo-bash
+SAVE_FILENAME="$(hostname)_todo_bash.data"
+
+# Load saved file
+if [[ -f "$SAVE_FILENAME" ]]; then
+    source "$SAVE_FILENAME"
+fi
 
 #
 # Color codes
 #
+RED="\e[1;31m"
 PURPLE="\e[1;35m"
 GREEN="\e[1;32m"
 NO_COLOR="\e[0m"
+
+#
+# Save state of relevant variables in a file
+#
+save_variables() {
+    local filename="$SAVE_FILENAME"
+
+    # Clear any previous saves
+    echo > "$filename"
+  
+    printf -v joinedTodos "'%s' " "${TODOS[@]}"
+    printf -v joinedChecked "%s " "${CHECKED[@]}"
+
+    echo "TODOS=(${joinedTodos%,})" >> "$filename"
+    echo "CHECKED=(${joinedChecked%,})" >> "$filename"
+    echo "SELECTED_ITEM_INDEX=$SELECTED_ITEM_INDEX" >> "$filename"
+}
+
+#
+# Save state of todos in a file
+#
+save_mode() {
+    local filename="$SAVE_FILENAME"
+
+    clear
+
+    echo -e "${PURPLE}---SAVE MODE---$NO_COLOR"
+
+    save_variables
+
+    echo -e "Saved to -> ${GREEN}$filename $NO_COLOR"
+
+    echo "<- Press ENTER to go back"
+    read -s
+}
 
 #
 # Universal separator
@@ -27,7 +69,7 @@ print_separator() {
 # Inline commands below the list
 #
 print_commands_inline() {
-   echo '^K - Insert mode | ^E - Options | ^F - Quit'
+   echo '^K - Insert mode | ^E - Options | ^S - Save | ^F - Quit'
 }
 
 #
@@ -35,12 +77,13 @@ print_commands_inline() {
 #
 options_mode() {
     clear
-    echo -e "$PURPLE ---OPTIONS & COMMANDS--- $NO_COLOR"
+    echo -e "${PURPLE}---OPTIONS & COMMANDS---$NO_COLOR"
     print_separator
     echo "^K - Open insert mode to add new item"
     echo "ENTER - Mark currently selected item as resolved"
     echo "DELETE / BACKSPACE - Delete currently selected item"
     echo "^E - Open options & commands menu"
+    echo "^S - Save state to a file to be loaded on next run"
     echo "^F - Quit with confirmation prompt"
     print_separator
     echo "<- Press ENTER to go back"
@@ -52,7 +95,7 @@ options_mode() {
 #
 print_welcome_text() {
     echo 'Welcome to to-do list created in bash!'
-    echo 'You can create, toggle & delete to-do items from your terminal'
+    echo 'You can create, toggle, save & delete to-do items from your terminal'
     echo "Repository: $REPO_URL"
     print_separator
 }
@@ -61,7 +104,7 @@ print_welcome_text() {
 # When no todo items are present
 #
 print_empty_state() {
-    echo -e "$PURPLE No to-dos added! $NO_COLOR"
+    echo -e "${PURPLE}No to-dos added!$NO_COLOR"
     print_separator
     print_commands_inline
 }
@@ -100,7 +143,7 @@ print_todo() {
     if [[ -z "$color" ]]; then
         echo "${prefix} [${checkboxContent}] ${TODOS[$1]}"
     else
-        echo -e "${color} ${prefix} [${checkboxContent}] ${TODOS[$1]} ${NO_COLOR}"
+        echo -e "${prefix} ${color} [${checkboxContent}] ${TODOS[$1]} ${NO_COLOR}"
     fi
 }
 
@@ -214,10 +257,14 @@ input_mode() {
 #
 confirm_exit() {
     clear
-    read -p "All todos will be lost. Are you sure? [y/n] - " answer
-    if [[ $answer == "y" || $answer == "Y" ]]; then
-        exit
+    read -p "Save before closing [y\n]? (y) - " answer
+
+    if [[ $answer == "y" || $answer == "Y" || -z $answer ]]; then
+        save_variables
+        echo -e "${GREEN}Saved!${NO_COLOR}"
     fi
+
+    exit
 }
 
 #
@@ -231,6 +278,7 @@ handle_keyboard_input() {
     local quit_char=$(printf "\x06") # ^F
     local input_mode_char=$(printf "\x0b") # ^K
     local options_mode_char=$(printf "\x05") # ^E
+    local save_mode_char=$(printf "\x13") # ^S
 
     read -sn1 mode
 
@@ -248,16 +296,23 @@ handle_keyboard_input() {
         input_mode
     elif [[ $mode == $options_mode_char ]]; then
         options_mode
+    elif [[ $mode == $save_mode_char ]]; then
+        save_mode
     fi 
 }
 
 #
 # Script start
 #
-clear
 
-print_welcome_text
+stty -ixon # Disable ctrl + s combo while the script is running
 
+clear # Clear screen for start
+
+print_welcome_text # Print welcome text
+
+
+# Loop until script is closed through confirmation promp or manually
 while true
 do
     if [[ $INPUT_MODE_ACTIVE == 1 ]]; then
