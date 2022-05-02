@@ -44,18 +44,14 @@ save_variables() {
 # Save state of todos in a file
 #
 save_mode() {
-    local filename="$SAVE_FILENAME"
-
     clear
 
     echo -e "${PURPLE}---SAVE MODE---$NO_COLOR"
 
     save_variables
+    echo -e "${GREEN}Saved!$NO_COLOR"
 
-    echo -e "Saved to -> ${GREEN}$filename $NO_COLOR"
-
-    echo "<- Press ENTER to go back"
-    read -s
+    sleep .7
 }
 
 #
@@ -69,7 +65,7 @@ print_separator() {
 # Inline commands below the list
 #
 print_commands_inline() {
-   echo '^K - Insert mode | ^E - Options | ^S - Save | ^F - Quit'
+   echo -e "^K - Insert | E - Edit item | ^S - Save all\n^E - Options | ^F - Quit"
 }
 
 #
@@ -80,6 +76,7 @@ options_mode() {
     echo -e "${PURPLE}---OPTIONS & COMMANDS---$NO_COLOR"
     print_separator
     echo "^K - Open insert mode to add new item"
+    echo "E - Edit currently selected item"
     echo "ENTER - Mark currently selected item as resolved"
     echo "DELETE / BACKSPACE - Delete currently selected item"
     echo "^E - Open options & commands menu"
@@ -244,12 +241,23 @@ move_indicator_down() {
 #
 input_mode() {
     clear
-    echo -e "$PURPLE ---INPUT MODE--- $NO_COLOR"
+    echo -e "${PURPLE}---INPUT MODE---$NO_COLOR"
     print_separator
-    read -p 'New item: ' newItem
+    read -e -p "$(echo -e "${GREEN}New item:${NO_COLOR} ")" newItem
     if [[ ! -z "$newItem" ]]; then # prevent empty values from being added
         add_todo "$newItem"
     fi
+}
+
+#
+# Display edit page for the item
+#
+edit_item_mode() {
+    clear
+    echo -e "${PURPLE}---EDIT MODE---$NO_COLOR"
+    local item="${TODOS[$1]}"
+    read -e -p "$(echo -e "${GREEN}New text:${NO_COLOR} ")" -i "$item" item
+    TODOS[$1]="$item"
 }
 
 #
@@ -279,13 +287,14 @@ handle_keyboard_input() {
     local input_mode_char=$(printf "\x0b") # ^K
     local options_mode_char=$(printf "\x05") # ^E
     local save_mode_char=$(printf "\x13") # ^S
+    local edit_selected_item_char='e' # e
 
     read -sn1 mode
 
     if [[ $mode == $enter_char && $SELECTED_ITEM_INDEX > -1 ]]; then
-        toggle_todo SELECTED_ITEM_INDEX
+        toggle_todo $SELECTED_ITEM_INDEX
     elif [[ $mode == $delete_char && $SELECTED_ITEM_INDEX > -1 ]]; then
-        delete_todo SELECTED_ITEM_INDEX
+        delete_todo $SELECTED_ITEM_INDEX
     elif [[ $mode == $quit_char ]]; then
         confirm_exit
     elif [[ $mode == $arrow_up_char ]]; then
@@ -298,6 +307,8 @@ handle_keyboard_input() {
         options_mode
     elif [[ $mode == $save_mode_char ]]; then
         save_mode
+    elif [[ $mode == $edit_selected_item_char ]]; then
+        edit_item_mode $SELECTED_ITEM_INDEX
     fi 
 }
 
