@@ -25,9 +25,9 @@ print_separator() {
 # Load all lists
 #
 load_list_names_into_memory() {
-    for file in "$PATH_TO_LISTS_FOLDER"/*_todo_bash.list; do
+    for file in "$PATH_TO_LISTS_FOLDER"/*"_todo_bash.list"; do
         local filename="$(basename "$file")"
-        if [[ $filename != "*" ]]; then
+        if [[ $filename != "*_todo_bash.list" ]]; then
             CREATED_LISTS+=("$filename")
         fi
     done
@@ -55,6 +55,13 @@ print_menu() {
     print_separator
 }
 
+#
+# Picks up the users menu choice
+#
+handle_choice() {
+    read -e -p "Pick a list to load: " listIndex
+}
+
 
 #
 # Program starts here
@@ -62,4 +69,4 @@ print_menu() {
 clear
 load_list_names_into_memory
 print_menu
-read -s
+handle_choice
