@@ -1,11 +1,9 @@
 #!/usr/bin/bash
 
-#!/usr/bin/bash
-
 #
 # Global variables
 #
-PATH_TO_LISTS_FOLDER="./lists/"
+PATH_TO_LISTS_FOLDER="./lists"
 CREATED_LISTS=()
 
 source './colors.sh'
@@ -27,7 +25,7 @@ print_separator() {
 # Load all lists
 #
 load_list_names_into_memory() {
-    for file in "$PATH_TO_LISTS_FOLDER/*_todo_bash.list"; do
+    for file in "$PATH_TO_LISTS_FOLDER"/*_todo_bash.list; do
         local filename="$(basename "$file")"
         if [[ $filename != "*" ]]; then
             CREATED_LISTS+=("$filename")
@@ -41,14 +39,16 @@ load_list_names_into_memory() {
 print_menu() {
     print_in_color $PURPLE "To-do list app"
     print_separator
-    print_in_color $GREEN "1) New list"
 
-    echo "${CREATED_LISTS[@]}"
+    local menuCounter=1
+
+    print_in_color $GREEN "$menuCounter) New list"
 
     if [[ ${#CREATED_LISTS[@]} > 0 ]]; then
         print_separator
-        for i in "${#CREATED_LISTS[@]}"; do
-            echo "$i) ${CREATED_LISTS[$i]}"
+        for i in "${!CREATED_LISTS[@]}"; do
+            let "menuCounter += 1"
+            echo "$menuCounter) ${CREATED_LISTS[$i]}"
         done
     fi
 
